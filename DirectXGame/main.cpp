@@ -63,9 +63,9 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 	rasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID;
 
 	// コンパイル済みのShader、エラー時情報の格納場所の用意
-	ID3DBlob* vsBlod = nullptr;   // 頂点シェーダオブジェクト
-	ID3DBlob* psBlod = nullptr;   // ピクセルシェーダオブジェクト
-	ID3DBlob* errorBlob = nullptr;// エラーオブジェクト
+	ID3DBlob* vsBlod = nullptr;    // 頂点シェーダオブジェクト
+	ID3DBlob* psBlod = nullptr;    // ピクセルシェーダオブジェクト
+	ID3DBlob* errorBlob = nullptr; // エラーオブジェクト
 	// 頂点シェーダの読み込みとコンパイル
 	std::wstring vsPath = L"Resources/shaders/TestVS.hlsl";
 	hr = D3DCompileFromFile(
