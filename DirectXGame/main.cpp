@@ -1,10 +1,8 @@
 #include "KamataEngine.h"
 #include <Windows.h>
-#include <d3dcompiler.h>
+#include "Shader.h"
 
 using namespace KamataEngine;
-
-ID3DBlob* CompileShader(const std::wstring& filePath, const std::string& shaderModel);
 
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
@@ -64,19 +62,20 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 	// 塗りつぶしモードをソリッドにする(ワイヤーフレームなら　D3D12_FILL_MOOE_WIREFRAME)
 	rasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID;
 
-	// コンパイル済みのShader、エラー時情報の格納場所の用意
-	ID3DBlob* vsBlod = CompileShader(L"Resources/shaders/TestVS.hlsl", "vs_5_0");
-	assert(vsBlod != nullptr);
+	Shader vs;
+	vs.Load(L"Resources/shaders/TestVS.hlsl", "vs_5_0");
+	assert(vs.GetBlob() != nullptr);
 
-	ID3DBlob* psBlod = CompileShader(L"Resources/shaders/TestPS.hlsl", "ps_5_0");
-	assert(psBlod != nullptr);
+	Shader ps;
+	ps.Load(L"Resources/shaders/TestPS.hlsl", "ps_5_0");
+	assert(ps.GetBlob() != nullptr);
 
 	// PSO(PipelineStateObject)の生成
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC graphicsPipelineStateDesc = {};
 	graphicsPipelineStateDesc.pRootSignature = rootSignature; // RootSignature
 	graphicsPipelineStateDesc.InputLayout = inputLayoutDesc;  // InputLayout
-	graphicsPipelineStateDesc.VS = {vsBlod->GetBufferPointer(), vsBlod->GetBufferSize()}; // vertexShader
-	graphicsPipelineStateDesc.PS = {psBlod->GetBufferPointer(), psBlod->GetBufferSize()}; // pixelShader
+	graphicsPipelineStateDesc.VS = {vs.GetBlob()->GetBufferPointer(), vs.GetBlob()->GetBufferSize()}; // vertexShader
+	graphicsPipelineStateDesc.PS = {ps.GetBlob()->GetBufferPointer(), ps.GetBlob()->GetBufferSize()}; // pixelShader
 	graphicsPipelineStateDesc.BlendState = blendDesc;           // BlendState
 	graphicsPipelineStateDesc.RasterizerState = rasterizerDesc; // RasterizerState
 	// 書き込むRTVの情報
@@ -156,33 +155,8 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 	graphicsPipelineState->Release();
 	signatureBlob->Release();
 	rootSignature->Release();
-	vsBlod->Release();
-	psBlod->Release();
 
 	KamataEngine::Finalize();
 
 	return 0;
-}
-
-
-
-ID3DBlob* CompileShader(const std::wstring& filePath, const std::string& shaderModel) {
-	ID3D10Blob* shaderBlob = nullptr;
-	ID3D10Blob* errorBlob = nullptr;
-
-	HRESULT hr = D3DCompileFromFile(
-	    filePath.c_str(), // シェーダファイル名
-	    nullptr,
-	    D3D_COMPILE_STANDARD_FILE_INCLUDE,               // インクルード可能にする
-	    "main", shaderModel.c_str(),                     // エントリーポイント名、シェーダーモデル指定
-	    D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION, // デバッグ用設定
-	    0, &shaderBlob, &errorBlob);
-
-	if (FAILED(hr)) {
-		if (errorBlob) {
-			OutputDebugStringA(reinterpret_cast<char*>(errorBlob->GetBufferPointer()));
-		}
-		assert(false);
-	}
-	return shaderBlob;
 }
