@@ -1,6 +1,7 @@
 #include "Shader.h"
 #include <d3dcompiler.h>
 #include <cassert>
+#include "MiscUtility.h"
 #include <dxcapi.h>
 #pragma comment(lib, "d3dcompiler.lib")
 
@@ -16,7 +17,8 @@ void Shader::Load(const std::wstring& filePath, const std::wstring& shaderModel)
 	    filePath.c_str(), // シェーダファイル名
 	    nullptr,
 	    D3D_COMPILE_STANDARD_FILE_INCLUDE,               // インクルード可能にする
-	    "main", mbShaderModel.c_str(),
+	    "main", 
+		mbShaderModel.c_str(),
 	    D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION, // デバッグ用設定
 	    0, &shaderBlob, &errorBlob);
 
@@ -110,7 +112,6 @@ void Shader::LoadDxc(const std::wstring& filePath, const std::wstring& shaderMod
 
 	// 実行用のバイナリを取っておく
 	dxcBlob_ = shaderBlob;
-	 
 }
 
 ID3DBlob* Shader::GetBlob() { return blob_; }
@@ -121,7 +122,7 @@ Shader::Shader() {}
 
 Shader::~Shader() {
 
-	if (blob_) {
+	if (blob_ != nullptr) {
 		blob_->Release();
 		blob_ = nullptr;
 	}
