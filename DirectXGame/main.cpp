@@ -100,7 +100,7 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 	vertexData[1] = { 0.0f,  0.5f, 0.0f, 1.0f};   // 上
 	vertexData[2] = { 0.5f, -0.5f, 0.0f, 1.0f};  // 右下
 	// 頂点リソースのマップを解除する
-	//vb.Get()->Unmap(0, nullptr);   // Unmap()は、実はなくても大丈夫
+	//vb.Get()->Unmap(0, nullptr);   // Unmap()は、実はなくても大丈夫　
 
 	while (true) {
 		if (KamataEngine::Update()) {
