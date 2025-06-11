@@ -120,9 +120,7 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 	}
 
 	uint16_t indices[] = {
-	    0,
-	    1,
-	    2,
+	    0, 1, 2,
 	};
 
 	// IndexBuffer(IndexResource, IndexResourceView)の生成
@@ -147,7 +145,7 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 		commandList->SetGraphicsRootSignature(rs.Get());     // RootSignatureの設定
 		commandList->SetPipelineState(pipelineState.Get());  // PSOの設定する
 		commandList->IASetVertexBuffers(0, 1, vb.GetView()); // VBVの設定
-		commandList->IASetIndexBuffer(ib.GetView());         // 
+		commandList->IASetIndexBuffer(ib.GetView());         //
 		// トポロジの設定
 		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		// 頂点数、インデックス数、インデックスの開始位置、インデックスのオフセット
