@@ -1,7 +1,8 @@
+#include "IndexBuffer.h"
 #include "KamataEngine.h"
-#include "Shader.h"
-#include "RootSignature.h"
 #include "PipelineState.h"
+#include "RootSignature.h"
+#include "Shader.h"
 #include "VertexBuffer.h"
 
 #include <Windows.h>
@@ -38,10 +39,8 @@ void SetupPipelineState(PipelineState& pipelineState, RootSignature& rs, Shader&
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC graphicsPipelineStateDesc = {};
 	graphicsPipelineStateDesc.pRootSignature = rs.Get();                                                    // RootSignature
 	graphicsPipelineStateDesc.InputLayout = inputLayoutDesc;                                                // InputLayout
-	graphicsPipelineStateDesc.VS = 
-	     {vs.GetDxcBlob()->GetBufferPointer(), vs.GetDxcBlob()->GetBufferSize()}; // vertexShader
-	graphicsPipelineStateDesc.PS = 
-	     {ps.GetDxcBlob()->GetBufferPointer(), ps.GetDxcBlob()->GetBufferSize()}; // pixelShader
+	graphicsPipelineStateDesc.VS = {vs.GetDxcBlob()->GetBufferPointer(), vs.GetDxcBlob()->GetBufferSize()}; // vertexShader
+	graphicsPipelineStateDesc.PS = {ps.GetDxcBlob()->GetBufferPointer(), ps.GetDxcBlob()->GetBufferSize()}; // pixelShader
 	graphicsPipelineStateDesc.BlendState = blendDesc;                                                       // BlendState
 	graphicsPipelineStateDesc.RasterizerState = rasterizerDesc;                                             // RasterizerState
 
@@ -59,7 +58,7 @@ void SetupPipelineState(PipelineState& pipelineState, RootSignature& rs, Shader&
 
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
-	
+
 	KamataEngine::Initialize(L"LE3C_01_イシイ_ハヤト");
 
 	// DirectXCommonインスタンスの取得
@@ -89,18 +88,53 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 	PipelineState pipelineState;
 	SetupPipelineState(pipelineState, rs, vs, ps);
 
-	// VertexBuffer(VertexResource, VertexResourceView)の生成
-	VertexBuffer vb;
-	vb.Create(sizeof(Vector4) * 3, sizeof(Vector4));
+	// リソース確保含め、
+	struct VertexData {
+		Vector4 position;
+	};
 
-	// 頂点リソースにデータを書き込む
-	Vector4* vertexData = nullptr;
-	vb.Get()->Map(0, nullptr, reinterpret_cast<void**>(&vertexData));
-	vertexData[0] = {-0.5f, -0.5f, 0.0f, 1.0f}; // 左下
-	vertexData[1] = { 0.0f,  0.5f, 0.0f, 1.0f};   // 上
-	vertexData[2] = { 0.5f, -0.5f, 0.0f, 1.0f};  // 右下
-	// 頂点リソースのマップを解除する
-	//vb.Get()->Unmap(0, nullptr);   // Unmap()は、実はなくても大丈夫
+	/*/
+	// 頂点データの準備
+	VertexData vertices[] = {
+	    {0.0f,  0.5f,  0.0f, 1.0f}, // 左下
+	    {0.5f,  -0.5f, 0.0f, 1.0f}, // 上
+	    {-0.5f, -0.5f, 0.0f, 1.0f}, // 右下
+	};
+	/*/
+
+	// 真っ白
+	VertexData vertices[] = {
+	    {-1.0f, -1.0f, 0.0f, 1.0f}, // 左下
+	    {-1.0f, 3.0f,  0.0f, 1.0f}, // 左上より上
+	    {3.0f,  -1.0f, 0.0f, 1.0f}, // 右下より右
+	};
+
+	VertexBuffer vb;
+	vb.Create(sizeof(vertices), sizeof(vertices[0]));
+
+	VertexData* pGpuVertices = nullptr;
+	vb.Get()->Map(0, nullptr, reinterpret_cast<void**>(&pGpuVertices));
+
+	for (int i = 0; i < _countof(vertices); ++i) {
+		pGpuVertices[i] = vertices[i];
+	}
+
+	uint16_t indices[] = {
+	    0,
+	    1,
+	    2,
+	};
+
+	// IndexBuffer(IndexResource, IndexResourceView)の生成
+	IndexBuffer ib;
+	ib.Create(sizeof(indices), sizeof(indices[0]));
+
+	uint16_t* pGpuIndices = nullptr;
+	ib.Get()->Map(0, nullptr, reinterpret_cast<void**>(&pGpuIndices));
+
+	for (int i = 0; i < _countof(indices); ++i) {
+		pGpuIndices[i] = indices[i];
+	}
 
 	while (true) {
 		if (KamataEngine::Update()) {
@@ -110,13 +144,15 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 		dxCommon->PreDraw();
 
 		// コマンドを積む
-		commandList->SetGraphicsRootSignature(rs.Get());   // RootSignatureの設定
-		commandList->SetPipelineState(pipelineState.Get());   // PSOの設定する
+		commandList->SetGraphicsRootSignature(rs.Get());     // RootSignatureの設定
+		commandList->SetPipelineState(pipelineState.Get());  // PSOの設定する
 		commandList->IASetVertexBuffers(0, 1, vb.GetView()); // VBVの設定
+		commandList->IASetIndexBuffer(ib.GetView());         //
 		// トポロジの設定
 		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		// 頂点数、インデックス数、インデックスの開始位置、インデックスのオフセット
-		commandList->DrawInstanced(3, 1, 0, 0);
+		// commandList->DrawInstanced(3, 1, 0, 0);
+		commandList->DrawIndexedInstanced(_countof(indices), 1, 0, 0, 0);
 
 		dxCommon->PostDraw();
 	}
