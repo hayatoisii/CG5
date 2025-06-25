@@ -9,8 +9,3 @@ struct VertexShaderInput
     float32_t4 position : POSITION0;
     float32_t2 texcoord : TEXCOORD0;
 };
-
-struct PixelShaderOutPut
-{
-    float4 color : SV_TARGET0;
-};

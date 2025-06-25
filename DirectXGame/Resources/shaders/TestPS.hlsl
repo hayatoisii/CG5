@@ -1,10 +1,21 @@
 #include "Test.hlsli"
 
-PixelShaderOutPut main(VertexShaderOutput input)
+Texture2D<float32_t4> gTexture : register(t0);
+SamplerState gSampler : register(s0);
+
+struct PixelShaderOutPut 
+{
+    float4 color : SV_TARGET0;
+};
+
+PixelShaderOutPut main(VertexShaderOutput input) 
 {
     PixelShaderOutPut output;
-    float32_t2 uv = input.texcoord;
     
-    output.color = float32_t4(uv.x, uv.y, 0.0f, 1.0f);
+    float32_t2 uv = input.texcoord;
+    float32_t4 textureColor = gTexture.Sample(gSampler, uv);
+    
+    output.color = textureColor;
+    
     return output;
 }
