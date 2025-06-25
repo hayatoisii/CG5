@@ -16,7 +16,7 @@ void SetupPipelineState(PipelineState& pipelineState, RootSignature& rs, Shader&
 	D3D12_INPUT_ELEMENT_DESC inputElementDescs[2] = {};
 	inputElementDescs[0].SemanticName = "POSITION";
 	inputElementDescs[0].SemanticIndex = 0;
-	inputElementDescs[0].Format = DXGI_FORMAT_R32G32B32_FLOAT;
+	inputElementDescs[0].Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
 	inputElementDescs[0].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
 	inputElementDescs[1].SemanticName = "TEXCOORD";
 	inputElementDescs[1].SemanticIndex = 0;
@@ -108,11 +108,13 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 
 	// 真っ白
 	VertexData vertices[] = {
-	    {{-1.0f, -1.0f, 0.0f, 1.0f}, {0.0f, 0.0f}}, // 左下
-	    {{-1.0f, 3.0f, 0.0f, 1.0f},  {0.0f, 2.0f}}, // 左上より上
-	    {{3.0f, -1.0f, 0.0f, 1.0f},  {2.0f, 0.0f}}, // 右下より右
-	    {{3.0f, -1.0f, 0.0f, 1.0f},  {2.0f, 0.0f}},
+	    {{-1.0f,  1.0f, 0.0f, 1.0f},  {0.0f, 0.0f}}, // 左下
+	    {{ 1.0f,  1.0f, 0.0f, 1.0f},  {1.0f, 0.0f}}, // 左上より上
+	    {{-1.0f, -1.0f, 0.0f, 1.0f},  {0.0f, 1.0f}}, // 右下より右
+	    {{ 1.0f, -1.0f, 0.0f, 1.0f},  {1.0f, 1.0f}},
 	};
+
+	uint16_t indices[] = {0, 1, 2, 2, 1, 3};
 
 	VertexBuffer vb;
 	vb.Create(sizeof(vertices), sizeof(vertices[0]));
@@ -123,10 +125,6 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 	for (int i = 0; i < _countof(vertices); ++i) {
 		pGpuVertices[i] = vertices[i];
 	}
-
-	uint16_t indices[] = {
-	    0, 1, 2,
-	};
 
 	// IndexBuffer(IndexResource, IndexResourceView)の生成
 	IndexBuffer ib;
