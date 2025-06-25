@@ -10,54 +10,15 @@
 
 using namespace KamataEngine;
 
-void SetupPipelineState(PipelineState& pipelineState, RootSignature& rs, Shader& vs, Shader& ps) {
+// PipelineStateObjectの生成
+void SetupPipelineState(PipelineState& pipelineState, RootSignature& rs, Shader& vs, Shader& ps);
 
-	// InputLayout
-	D3D12_INPUT_ELEMENT_DESC inputElementDescs[2] = {};
-	inputElementDescs[0].SemanticName = "POSITION";
-	inputElementDescs[0].SemanticIndex = 0;
-	inputElementDescs[0].Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-	inputElementDescs[0].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
-	inputElementDescs[1].SemanticName = "TEXCOORD";
-	inputElementDescs[1].SemanticIndex = 0;
-	inputElementDescs[1].Format = DXGI_FORMAT_R32G32_FLOAT;
-	inputElementDescs[1].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
-	D3D12_INPUT_LAYOUT_DESC inputLayoutDesc = {};
-	inputLayoutDesc.pInputElementDescs = inputElementDescs;
-	inputLayoutDesc.NumElements = _countof(inputElementDescs);
+// RenderTextureResourceの生成
+ID3D12Resource* CreateRenderTextureResource(ID3D12Device* device, uint32_t width, uint32_t height, 
+DXGI_FORMAT format, const FLOAT* clearColor);
 
-	// BlendState 今回は不透明
-	D3D12_BLEND_DESC blendDesc = {};
-	// すべての色要素を書き込む
-	blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
-
-	// RasterizerState
-	D3D12_RASTERIZER_DESC rasterizerDesc = {};
-	// 裏面(反時計回り)をカリングする
-	rasterizerDesc.CullMode = D3D12_CULL_MODE_BACK;
-	// 塗りつぶしモードをソリッドにする(ワイヤーフレームなら　D3D12_FILL_MOOE_WIREFRAME)
-	rasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID;
-
-	// PSO(PipelineStateObject)の生成
-	D3D12_GRAPHICS_PIPELINE_STATE_DESC graphicsPipelineStateDesc = {};
-	graphicsPipelineStateDesc.pRootSignature = rs.Get();                                                    // RootSignature
-	graphicsPipelineStateDesc.InputLayout = inputLayoutDesc;                                                // InputLayout
-	graphicsPipelineStateDesc.VS = {vs.GetDxcBlob()->GetBufferPointer(), vs.GetDxcBlob()->GetBufferSize()}; // vertexShader
-	graphicsPipelineStateDesc.PS = {ps.GetDxcBlob()->GetBufferPointer(), ps.GetDxcBlob()->GetBufferSize()}; // pixelShader
-	graphicsPipelineStateDesc.BlendState = blendDesc;                                                       // BlendState
-	graphicsPipelineStateDesc.RasterizerState = rasterizerDesc;                                             // RasterizerState
-
-	// 書き込むRTVの情報
-	graphicsPipelineStateDesc.NumRenderTargets = 1; // 1つのRTVに書き込む
-	graphicsPipelineStateDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-	// 利用するトポロジ(形状)のタイプ。三角形
-	graphicsPipelineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-	// どのように画面に色を打ち込むかの設定
-	graphicsPipelineStateDesc.SampleDesc.Count = 1;
-	graphicsPipelineStateDesc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
-
-	pipelineState.Create(graphicsPipelineStateDesc);
-}
+// DepthStencilTextureResourceの生成
+ID3D12Resource* CreateDepthStencilTextureResource(ID3D12Device* device, uint32_t width, uint32_t height);
 
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
@@ -137,6 +98,38 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 		pGpuIndices[i] = indices[i];
 	}
 
+	// Resource生成、Heap生成、View生成で再利用される変数の準備
+	ID3D12Device* device = dxCommon->GetDevice();
+	HRESULT hr;
+
+	// RenderTextureResourceの生成
+	// 画面クリア色
+	const FLOAT kRenderTargetClearColor[4] = {1.0f, 0.0f, 0.0f, 1.0f};
+
+	ID3D12Resource* renderTextureResource = CreateRenderTextureResource(device, WinApp::kWindowWidth, WinApp::kWindowHeight, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, kRenderTargetClearColor);
+
+	// 1.RTV用のDescriptorHeapを生成する
+	ID3D12DescriptorHeap* rtvDescriptorHeap = nullptr;
+
+	D3D12_DESCRIPTOR_HEAP_DESC rtvDescriptorHeapDesc = {};
+	rtvDescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV; // RTV
+	rtvDescriptorHeapDesc.NumDescriptors = 1;                    // Descriptorの戸数は1
+
+	hr = device->CreateDescriptorHeap(&rtvDescriptorHeapDesc, IID_PPV_ARGS(&rtvDescriptorHeap));
+	assert(SUCCEEDED(hr));
+
+	// CPU側から見たHANDLEを取得しておく
+	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandleCPU = rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+
+
+	// 2.RTV用のViewの生成
+	device->CreateRenderTargetView(
+	    renderTextureResource, // Viewと関連付けたいリソース
+	    nullptr,               // RTVの詳細情報(Desc:Description,構成内容のく述)
+
+	    rtvHandleCPU           // RTV用のディスクリプタヒープの CPU Handle
+	);
+
 	while (true) {
 		if (KamataEngine::Update()) {
 			break;
@@ -162,3 +155,100 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 
 	return 0;
 }
+
+void SetupPipelineState(PipelineState& pipelineState, RootSignature& rs, Shader& vs, Shader& ps) {
+
+	// InputLayout
+	D3D12_INPUT_ELEMENT_DESC inputElementDescs[2] = {};
+	inputElementDescs[0].SemanticName = "POSITION";
+	inputElementDescs[0].SemanticIndex = 0;
+	inputElementDescs[0].Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+	inputElementDescs[0].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
+	inputElementDescs[1].SemanticName = "TEXCOORD";
+	inputElementDescs[1].SemanticIndex = 0;
+	inputElementDescs[1].Format = DXGI_FORMAT_R32G32_FLOAT;
+	inputElementDescs[1].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
+	D3D12_INPUT_LAYOUT_DESC inputLayoutDesc = {};
+	inputLayoutDesc.pInputElementDescs = inputElementDescs;
+	inputLayoutDesc.NumElements = _countof(inputElementDescs);
+
+	// BlendState 今回は不透明
+	D3D12_BLEND_DESC blendDesc = {};
+	// すべての色要素を書き込む
+	blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+
+	// RasterizerState
+	D3D12_RASTERIZER_DESC rasterizerDesc = {};
+	// 裏面(反時計回り)をカリングする
+	rasterizerDesc.CullMode = D3D12_CULL_MODE_BACK;
+	// 塗りつぶしモードをソリッドにする(ワイヤーフレームなら　D3D12_FILL_MOOE_WIREFRAME)
+	rasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID;
+
+	// PSO(PipelineStateObject)の生成
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC graphicsPipelineStateDesc = {};
+	graphicsPipelineStateDesc.pRootSignature = rs.Get();                                                    // RootSignature
+	graphicsPipelineStateDesc.InputLayout = inputLayoutDesc;                                                // InputLayout
+	graphicsPipelineStateDesc.VS = {vs.GetDxcBlob()->GetBufferPointer(), vs.GetDxcBlob()->GetBufferSize()}; // vertexShader
+	graphicsPipelineStateDesc.PS = {ps.GetDxcBlob()->GetBufferPointer(), ps.GetDxcBlob()->GetBufferSize()}; // pixelShader
+	graphicsPipelineStateDesc.BlendState = blendDesc;                                                       // BlendState
+	graphicsPipelineStateDesc.RasterizerState = rasterizerDesc;                                             // RasterizerState
+
+	// 書き込むRTVの情報
+	graphicsPipelineStateDesc.NumRenderTargets = 1; // 1つのRTVに書き込む
+	graphicsPipelineStateDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+	// 利用するトポロジ(形状)のタイプ。三角形
+	graphicsPipelineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	// どのように画面に色を打ち込むかの設定
+	graphicsPipelineStateDesc.SampleDesc.Count = 1;
+	graphicsPipelineStateDesc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
+
+	pipelineState.Create(graphicsPipelineStateDesc);
+}
+
+// RenderTextureResourceの生成
+ID3D12Resource* CreateRenderTextureResource(ID3D12Device* device,
+	uint32_t width, uint32_t height, DXGI_FORMAT clearFormat, const FLOAT* clearColor) {
+
+	// 1.生成するRenderTextureの　Descの設定
+	D3D12_RESOURCE_DESC resourceDesc{};                     
+	resourceDesc.Width = UINT(width);                       // RenderTextureの幅
+	resourceDesc.Height = UINT(height);                     // Textureの高さ
+	resourceDesc.MipLevels = 1;                             // mipmapの数
+	resourceDesc.DepthOrArraySize = 1;                      // 奥行　or　配列Textureの配列数
+	resourceDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;  // TextureのFormat
+	resourceDesc.SampleDesc.Count = 1;                      // サンプリングカウント　1固定
+	resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;   // Textureの時限数。普段使ってるのは2次元
+	resourceDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;  // RenderTargetとして使う通知
+
+	// 2.利用するHeapの設定
+	D3D12_HEAP_PROPERTIES heapProperties{};
+	heapProperties.Type = D3D12_HEAP_TYPE_DEFAULT; // VRAM上に作る
+
+	// 3.ClaarValueの用意
+	D3D12_CLEAR_VALUE clearValue;
+	clearValue.Format = clearFormat;
+	clearValue.Color[0] = clearColor[0];
+	clearValue.Color[1] = clearColor[1];
+	clearValue.Color[2] = clearColor[2];
+	clearValue.Color[3] = clearColor[3];
+
+	// 4.RenderTextureResoureceの生成
+	ID3D12Resource* resource = nullptr;
+	HRESULT hr = device->CreateCommittedResource(
+	    &heapProperties,                    // Heapの設定
+	    D3D12_HEAP_FLAG_NONE,               // Heapの特殊な設定
+	    &resourceDesc,                      // Resourceの設定
+	    D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, // 初期状態
+	    &clearValue,                        // クリア値
+	    IID_PPV_ARGS(&resource)             // 生成したリソースのポインタを受け取る
+	);
+	assert(SUCCEEDED(hr));
+
+	return resource;
+}
+
+ID3D12Resource* CreateDepthStencilTextureResource(ID3D12Device* device, uint32_t width, uint32_t height{
+	// 1.生成するDepthStencilTextureのDescの設定
+
+
+	}
