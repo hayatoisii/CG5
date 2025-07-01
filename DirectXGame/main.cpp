@@ -185,7 +185,7 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 			break;
 		}
 
-		D3D12_RESOURCE_BARRIER barrier{};
+        D3D12_RESOURCE_BARRIER barrier{};
 		barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 		barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
 		barrier.Transition.pResource = renderTextureResource;
@@ -214,12 +214,12 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 		scissorRect.bottom = WinApp::kWindowHeight;
 		commandList->RSSetScissorRects(1, &scissorRect);
 
-		dxCommon->PreDraw();
-
 		// 全画面clear
 		commandList->ClearRenderTargetView(rtvHandleCPU, kRenderTargetClearColor, 0, nullptr);
 		// 指定した深度で画面全体をクリアする
 		commandList->ClearDepthStencilView(dsvHandleCPU, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+
+		dxCommon->PreDraw();
 
 		// コマンドを積む
 		commandList->SetGraphicsRootSignature(rs.Get());    // RootSignatureの設定
@@ -231,13 +231,13 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 
 		// 使用するディスクリプタヒープの設定
 		commandList->SetDescriptorHeaps(srvDescriptorHeap->GetDesc().NumDescriptors, &srvDescriptorHeap);
+
 		// SRVのDescripterTableの先頭を設定
 		commandList->SetGraphicsRootDescriptorTable(0, srvHandleGPU);
 
-		// 頂点数、インデックス数、インデックスの開始位置、インデックスのオフセット
+		// 画面を覆うポリゴンの描画 
 		commandList->DrawIndexedInstanced(_countof(indices), 1, 0, 0, 0);
 
-		// オフスクリーンリソースをシェーダリソース状態に戻す
 		std::swap(barrier.Transition.StateBefore, barrier.Transition.StateAfter);
 		commandList->ResourceBarrier(1, &barrier);
 
