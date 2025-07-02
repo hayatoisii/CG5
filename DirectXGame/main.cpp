@@ -207,13 +207,13 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 		// cameraの更新と定数バッファへの転送
 		camera.UpdateMatrix();
 
-        D3D12_RESOURCE_BARRIER barrier{};
-		barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-		barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		barrier.Transition.pResource = renderTextureResource;
-		barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-		barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
-		commandList->ResourceBarrier(1, &barrier);
+        D3D12_RESOURCE_BARRIER barrierRTV{};
+		barrierRTV.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		barrierRTV.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+		barrierRTV.Transition.pResource = renderTextureResource;
+		barrierRTV.Transition.StateBefore = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+		barrierRTV.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+		commandList->ResourceBarrier(1, &barrierRTV);
 		// 描画先のRTVとDSVを設定
 		commandList->OMSetRenderTargets(1, &rtvHandleCPU, false, &dsvHandleCPU);
 
@@ -245,6 +245,15 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 		model->Draw(worldTransform, camera);
 		Model::PostDraw();
 
+		// --- 描画後バリア（RTV→SRV） ---
+		D3D12_RESOURCE_BARRIER barrierSRV{};
+		barrierSRV.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		barrierSRV.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+		barrierSRV.Transition.pResource = renderTextureResource;
+		barrierSRV.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+		barrierSRV.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+		commandList->ResourceBarrier(1, &barrierSRV);
+
 		dxCommon->PreDraw();
 
 		// コマンドを積む
@@ -263,9 +272,6 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 
 		// 画面を覆うポリゴンの描画 
 		commandList->DrawIndexedInstanced(_countof(indices), 1, 0, 0, 0);
-
-		std::swap(barrier.Transition.StateBefore, barrier.Transition.StateAfter);
-		commandList->ResourceBarrier(1, &barrier);
 
 		dxCommon->PostDraw();
 	}
