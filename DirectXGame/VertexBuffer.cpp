@@ -32,8 +32,6 @@ void VertexBuffer::Create(const UINT size, const UINT stride) {
 		&uploadHeapProperties, D3D12_HEAP_FLAG_NONE, &vertexResourceDesc, 
 		D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&vertexResource));
 	assert(SUCCEEDED(hr));
-	(void)hr;
-
 	// 生成した頂点リソースをとっておく
 	vertexBuffer_ = vertexResource;
 
