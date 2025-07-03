@@ -1,5 +1,6 @@
 #include "RootSignature.h"
 #include "KamataEngine.h"
+#include <cassert>
 
 using namespace KamataEngine;
 
@@ -61,12 +62,14 @@ void RootSignature::Create() {
 		DebugText::GetInstance()->ConsolePrintf(reinterpret_cast<char*>(errorBlog->GetBufferPointer()));
 		assert(false);
 	}
+	(void)hr;
 
 	// バイナリをもとに生成
 	ID3D12RootSignature* rootSignature = nullptr;
 	hr = dxCommon->GetDevice()->CreateRootSignature(0, signatureBlob->GetBufferPointer(), 
 		signatureBlob->GetBufferSize(), IID_PPV_ARGS(&rootSignature));
 	assert(SUCCEEDED(hr));
+	(void)hr;
 
 	// signatureBlobはRootSignatureの生成後解放してもいい
 	signatureBlob->Release();

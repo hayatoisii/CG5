@@ -117,6 +117,7 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 
 	hr = device->CreateDescriptorHeap(&rtvDescriptorHeapDesc, IID_PPV_ARGS(&rtvDescriptorHeap));
 	assert(SUCCEEDED(hr));
+	(void)hr; 
 
 	// CPU側から見たHANDLEを取得しておく
 	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandleCPU = rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
@@ -141,6 +142,7 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 
 	hr = device->CreateDescriptorHeap(&dsvDescriptorHeapDesc, IID_PPV_ARGS(&dsvDescriptorHeap));
 	assert(SUCCEEDED(hr));
+	(void)hr;
 
 	// CPU側から見たDSVのHANDLEを取得しておく
 	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandleCPU = dsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
@@ -163,6 +165,7 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 
 	hr = device->CreateDescriptorHeap(&srvDescriptorHeapDesc, IID_PPV_ARGS(&srvDescriptorHeap));
 	assert(SUCCEEDED(hr));
+	(void)hr; 
 
 	// CPU側から見たSRVのHANDLE、GPU側からみたHANDLEを取得しておく
 	D3D12_CPU_DESCRIPTOR_HANDLE srvHandleCPU = srvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
@@ -377,6 +380,7 @@ ID3D12Resource* CreateRenderTextureResource(ID3D12Device* device, uint32_t width
 	    IID_PPV_ARGS(&resource)                     // 生成したリソースのポインタを受け取る
 	);
 	assert(SUCCEEDED(hr));
+	(void)hr; 
 
 	return resource;
 }
@@ -414,6 +418,7 @@ ID3D12Resource* CreateDepthStencilTextureResource(ID3D12Device* device, uint32_t
 	    IID_PPV_ARGS(&resource)           // 作成するResourceポインタへのポインタ
 	);
 	assert(SUCCEEDED(hr));
+	(void)hr; 
 
 	return resource;
 }
